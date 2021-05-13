@@ -4,30 +4,87 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = .env("DATABASE_URL")
 }
 
 model Post {
-  id        Int      @default(autoincrement()) @id
+  id        Int      @id @default(autoincrement())
   title     String   @db.VarChar(255)
   createdAt DateTime @default(now()) @db.Timestamp(6)
   content   String?
   published Boolean  @default(false)
-  author    User     @relation(fields: [authorId], references: [id])
   authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
 }
 
 model Profile {
-  id     Int     @default(autoincrement()) @id
+  id     Int     @id @default(autoincrement())
   bio    String?
-  user   User    @relation(fields: [userId], references: [id])
   userId Int     @unique
+  user   User    @relation(fields: [userId], references: [id])
 }
 
 model User {
-  id      Int      @default(autoincrement()) @id
-  email   String   @unique @db.VarChar(255)
+  id      Int      @id @default(autoincrement())
   name    String?  @db.VarChar(255)
+  email   String   @unique @db.VarChar(255)
   posts   Post[]
   profile Profile?
+}
+
+model clueshint {
+  game_id   Int
+  order_num Int
+  clue      String  @db.VarChar(100)
+  hint      String? @db.VarChar(100)
+  game      game    @relation(fields: [game_id], references: [id])
+
+  @@id([game_id, order_num])
+}
+
+model friend {
+  primary_user_mail                       String @db.VarChar(100)
+  friend_user_mail                        String @db.VarChar(100)
+  player_friend_friend_user_mailToplayer  player @relation("friend_friend_user_mailToplayer", fields: [friend_user_mail], references: [email])
+  player_friend_primary_user_mailToplayer player @relation("friend_primary_user_mailToplayer", fields: [primary_user_mail], references: [email])
+
+  @@id([primary_user_mail, friend_user_mail])
+}
+
+model game {
+  id               Int         @id @default(autoincrement())
+  game_name        String?     @db.VarChar(30)
+  player_id        String?     @db.VarChar(100)
+  start_coord_long Decimal     @db.Decimal(10, 7)
+  start_coord_lat  Decimal     @db.Decimal(10, 7)
+  end_coord_long   Decimal     @db.Decimal(10, 7)
+  end_coord_lat    Decimal     @db.Decimal(10, 7)
+  boundary         Int?
+  time_limit       Int?
+  link             String      @db.VarChar(100)
+  player           player?     @relation(fields: [player_id], references: [email])
+  clueshint        clueshint[]
+  highscore        highscore[]
+}
+
+model highscore {
+  player_email String   @db.VarChar(100)
+  game_id      Int
+  completed    Boolean? @default(false)
+  highscore    Int?     @default(0)
+  game         game     @relation(fields: [game_id], references: [id])
+  player       player   @relation(fields: [player_email], references: [email])
+
+  @@id([player_email, game_id])
+}
+
+model player {
+  email                                   String      @id @db.VarChar(100)
+  nickname                                String?     @db.VarChar(30)
+  country                                 String?     @db.VarChar(50)
+  created_on                              DateTime?   @db.Timestamp(6)
+  friend_friend_friend_user_mailToplayer  friend[]    @relation("friend_friend_user_mailToplayer")
+  friend_friend_primary_user_mailToplayer friend[]    @relation("friend_primary_user_mailToplayer")
+  game                                    game[]
+  highscore                               highscore[]
 }
